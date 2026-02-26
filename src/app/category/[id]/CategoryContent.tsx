@@ -9,7 +9,7 @@ import { useLang } from '@/hooks/useLang'
 import { GENRE_COLORS } from '@/lib/types'
 import type { TrendingItem } from '@/lib/types'
 
-export default function CategoryPage() {
+export default function CategoryContent() {
   const params       = useParams()
   const searchParams = useSearchParams()
   const id           = Number(params.id)

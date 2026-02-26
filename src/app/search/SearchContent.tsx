@@ -9,7 +9,7 @@ import { useLang } from '@/hooks/useLang'
 import { t } from '@/lib/i18n'
 import type { TrendingItem } from '@/lib/types'
 
-export default function SearchPage() {
+export default function SearchContent() {
   const params   = useSearchParams()
   const query    = params.get('q') ?? ''
   const { lang } = useLang()
