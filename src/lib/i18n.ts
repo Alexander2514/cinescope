@@ -127,3 +127,4 @@ export type TranslationKeys = keyof typeof translations['en-US']
 export function t(lang: LangCode, key: TranslationKeys): string {
   return translations[lang]?.[key] ?? translations['en-US'][key]
 }
+

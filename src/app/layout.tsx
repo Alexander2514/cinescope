@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-
+import { Analytics } from "@vercel/analytics/next"
 import './globals.css'
 import { Header } from '@/components/layout/Header'
 import { MobileNav } from '@/components/layout/MobileNav'
@@ -31,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="antialiased">
         {/* Ambient layers rendered by body::before / body::after in globals.css */}
 
+        <Analytics/>
         <StoreProvider>
         <Header />
 
