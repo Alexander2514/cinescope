@@ -13,22 +13,24 @@ export function Header() {
   const pathname = usePathname()
   const { lang } = useLang()
 
-  const [query,        setQuery]        = useState('')
-  const [paletteOpen,  setPaletteOpen]  = useState(false)
-  const [scrolled,     setScrolled]     = useState(false)
+  const [query,       setQuery]       = useState('')
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [scrolled,    setScrolled]    = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const isHome    = pathname === '/'
-  const isDetail  = pathname.startsWith('/movie/') || pathname.startsWith('/tv/')
+  const isHome   = pathname === '/'
+  const isDetail = pathname.startsWith('/movie/') || pathname.startsWith('/tv/')
 
-  // Shadow on scroll
+  useEffect(() => {
+    if (!pathname.startsWith('/search')) setQuery('')
+  }, [pathname])
+
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 8)
     window.addEventListener('scroll', handler, { passive: true })
     return () => window.removeEventListener('scroll', handler)
   }, [])
 
-  // Ctrl+K global shortcut
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -46,17 +48,6 @@ export function Header() {
     if (q) router.push(`/search?q=${encodeURIComponent(q)}`)
   }
 
-  // Live search debounce (600ms — matches old navigation.js)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const handleSearchInput = (val: string) => {
-    setQuery(val)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (!val.trim()) return
-    debounceRef.current = setTimeout(() => {
-      router.push(`/search?q=${encodeURIComponent(val.trim())}`)
-    }, 600)
-  }
-
   return (
     <>
       <header
@@ -65,7 +56,6 @@ export function Header() {
           ${scrolled ? 'shadow-[0_4px_30px_rgba(0,0,0,0.5)]' : ''}
           animate-[slideDown_0.5s_cubic-bezier(0.16,1,0.3,1)_both]`}
       >
-        {/* Back button (non-home pages) */}
         {!isHome && (
           <button
             onClick={() => router.back()}
@@ -78,7 +68,6 @@ export function Header() {
           </button>
         )}
 
-        {/* Logo */}
         <Link
           href="/"
           className="font-display text-[1.85rem] tracking-[0.06em] whitespace-nowrap flex-shrink-0
@@ -88,18 +77,16 @@ export function Header() {
           CineScope
         </Link>
 
-        {/* Page title (detail / category pages) */}
         {isDetail && (
           <span className="text-white/50 font-display text-xl tracking-widest uppercase ml-1 hidden sm:block">
             {pathname.startsWith('/tv/') ? '📺' : '🎬'}
           </span>
         )}
 
-        {/* Search form — hidden on detail pages */}
         {!isDetail && (
           <form
             onSubmit={handleSearch}
-            className="flex items-center flex-1 max-w-[380px] h-9 rounded-xl
+            className="hidden md:flex items-center flex-1 max-w-[380px] h-9 rounded-xl
               border border-white/[0.08] bg-white/[0.055] overflow-hidden
               transition-all duration-300 focus-within:border-violet-glow/50
               focus-within:shadow-[0_0_0_3px_rgba(109,40,217,0.14)]"
@@ -107,7 +94,7 @@ export function Header() {
             <input
               ref={inputRef}
               value={query}
-              onChange={e => handleSearchInput(e.target.value)}
+              onChange={e => setQuery(e.target.value)}
               placeholder={t(lang, 'searchPlaceholder')}
               autoComplete="off"
               className="flex-1 h-full px-3.5 text-sm bg-transparent text-white/90 placeholder-white/28 outline-none"
@@ -122,10 +109,8 @@ export function Header() {
           </form>
         )}
 
-        {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Ctrl+K trigger (desktop) */}
         <button
           onClick={() => setPaletteOpen(true)}
           className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg
@@ -139,10 +124,8 @@ export function Header() {
           <span className="font-mono">⌘K</span>
         </button>
 
-        {/* Language picker */}
         <LangDropdown />
 
-        {/* Home button (non-home pages) */}
         {!isHome && (
           <Link
             href="/"
@@ -156,7 +139,6 @@ export function Header() {
         )}
       </header>
 
-      {/* Command palette portal */}
       <CommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </>
   )

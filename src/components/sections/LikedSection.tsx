@@ -16,10 +16,8 @@ export function LikedSection() {
   const { getAll } = useLikedMovies()
   const { lang }   = useLang()
 
-  // ← Solo esto va en el guard, un placeholder simple
   if (!mounted) return <section id="liked" className="mb-14"><div className="h-[80px]" /></section>
 
-  // ← items se declara DESPUÉS del guard, cuando ya estamos en cliente
   const items = getAll()
 
   return (
@@ -36,19 +34,23 @@ export function LikedSection() {
           rounded-2xl border border-dashed border-white/[0.09] bg-white/[0.02]
           max-w-[340px]">
           <span className="text-[2.5rem]">🎬</span>
+
           <p className="text-[0.9rem] font-medium text-white/50">
-            ¡No hay películas guardadas!
+            {t(lang, 'noFavorites')}
           </p>
+
           <p className="text-[0.78rem] text-white/28 max-w-[220px]">
-            Empieza a crear tu colección agregando tus favoritas.
+              {t(lang, 'noFavoritesDesc')}
           </p>
+
+
           <Link
             href="/trends"
             className="mt-1 px-5 py-2 rounded-lg text-[0.8rem] font-bold
               bg-violet-glow text-void transition-all duration-200
               hover:bg-yellow-400 hover:shadow-[0_0_24px_rgba(251,191,36,0.5)] hover:scale-105"
           >
-            Explorar tendencias
+              {t(lang, 'exploreTrends')}
           </Link>
         </div>
       ) : (

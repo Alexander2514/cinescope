@@ -9,6 +9,8 @@ import {
   getMovieWatchProviders,
   IMG,
 } from '@/lib/api'
+import { getLangFromCookie } from '@/lib/serverLang'
+import { t } from '@/lib/i18n'
 import { LikeButton } from '@/components/ui/LikeButton'
 import { RatingCircle } from '@/components/ui/RatingCircle'
 import { WatchProviders } from '@/components/ui/WatchProviders'
@@ -24,12 +26,13 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
-    const movie = await getMovie(params.id)
+    const lang  = getLangFromCookie()
+    const movie = await getMovie(params.id, lang)
     return {
       title:       `${movie.title} — CineScope`,
       description: movie.overview,
       openGraph: {
-        title:  movie.title,
+        title:       movie.title,
         description: movie.overview,
         images: IMG.poster(movie.poster_path, 'w500') ? [IMG.poster(movie.poster_path, 'w500')!] : [],
       },
@@ -40,13 +43,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function MovieDetailPage({ params }: Props) {
-  const id = params.id
+  const id   = params.id
+  const lang = getLangFromCookie()
 
-  // Parallel fetch of all detail data
   const [movie, credits, recommendations, providersData] = await Promise.all([
-    getMovie(id).catch(() => null),
-    getMovieCredits(id).catch(() => ({ cast: [], crew: [] })),
-    getMovieRecommendations(id).catch(() => ({ results: [] })),
+    getMovie(id, lang).catch(() => null),
+    getMovieCredits(id, lang).catch(() => ({ cast: [], crew: [] })),
+    getMovieRecommendations(id, 1, lang).catch(() => ({ results: [] })),
     getMovieWatchProviders(id).catch(() => ({ id: 0, results: {} })),
   ])
 
@@ -57,20 +60,14 @@ export default async function MovieDetailPage({ params }: Props) {
   const directors = credits.crew.filter(c => c.job === 'Director').slice(0, 2)
   const cast      = credits.cast.slice(0, 8)
 
-  // Pick best regional providers (US → ES → first available)
-  const results = providersData.results as Record<string, any> | undefined
-  const provRegion =
-    results?.US ??
-    results?.ES ??
-    (results ? Object.values(results)[0] : null) ??
-    null
+  const r = providersData.results as Record<string, any> | undefined
+  const provRegion = r?.US ?? r?.ES ?? (r ? Object.values(r)[0] : null) ?? null
 
   const mediaItem = { ...movie, media_type: 'movie' as const }
 
   return (
     <main className="relative z-[1] max-w-[1080px] mx-auto px-4 md:px-6 lg:px-10 py-8 pb-28 md:pb-10">
 
-      {/* ── Backdrop blur hero ── */}
       {backdrop && (
         <div className="absolute inset-x-0 top-0 h-[380px] -z-10 overflow-hidden pointer-events-none">
           <Image src={backdrop} alt="" fill className="object-cover opacity-15 blur-[2px] scale-105" />
@@ -78,22 +75,17 @@ export default async function MovieDetailPage({ params }: Props) {
         </div>
       )}
 
-      {/* ── Main card ── */}
       <article className="bg-surface border border-white/[0.07] rounded-[22px] md:rounded-[28px] p-5 md:p-8 lg:p-10 shadow-[0_30px_90px_rgba(0,0,0,0.7)] animate-[fadeUp_0.55s_cubic-bezier(0.16,1,0.3,1)_both]">
 
-        {/* Hero grid */}
         <div className="grid gap-6 md:gap-8 md:grid-cols-[175px_1fr] lg:grid-cols-[245px_1fr_auto] items-start mb-8">
 
-          {/* Poster */}
           {poster && (
             <div className="relative w-full max-w-[245px] aspect-[2/3] mx-auto md:mx-0 rounded-2xl overflow-hidden shadow-[0_20px_55px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.07)]">
               <Image src={poster} alt={movie.title} fill className="object-cover" priority sizes="(max-width:768px) 50vw, 245px" />
             </div>
           )}
 
-          {/* Info */}
           <div className="min-w-0">
-            {/* Tagline */}
             {movie.tagline && (
               <p className="text-[0.72rem] uppercase tracking-widest text-violet-glow/60 mb-2 font-semibold">
                 {movie.tagline}
@@ -106,26 +98,14 @@ export default async function MovieDetailPage({ params }: Props) {
               {movie.overview}
             </p>
 
-            {/* Meta chips */}
             <div className="flex flex-wrap gap-2 mb-4">
-              {movie.release_date && (
-                <Chip icon="📅" text={movie.release_date.slice(0, 4)} />
-              )}
-              {movie.runtime && movie.runtime > 0 && (
-                <Chip icon="⏱" text={formatRuntime(movie.runtime)} />
-              )}
-              {movie.original_language && (
-                <Chip icon="🌐" text={movie.original_language.toUpperCase()} />
-              )}
-              {movie.budget && movie.budget > 0 && (
-                <Chip icon="💰" text={formatMoney(movie.budget)} />
-              )}
-              {directors.length > 0 && (
-                <Chip icon="🎬" text={directors.map(d => d.name).join(', ')} />
-              )}
+              {movie.release_date && <Chip icon="📅" text={movie.release_date.slice(0, 4)} />}
+              {movie.runtime && movie.runtime > 0 && <Chip icon="⏱" text={formatRuntime(movie.runtime)} />}
+              {movie.original_language && <Chip icon="🌐" text={movie.original_language.toUpperCase()} />}
+              {movie.budget && movie.budget > 0 && <Chip icon="💰" text={formatMoney(movie.budget)} />}
+              {directors.length > 0 && <Chip icon="🎬" text={directors.map(d => d.name).join(', ')} />}
             </div>
 
-            {/* Genre tags */}
             {movie.genres && movie.genres.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {movie.genres.map(g => (
@@ -143,11 +123,9 @@ export default async function MovieDetailPage({ params }: Props) {
               </div>
             )}
 
-            {/* Watch providers */}
             <WatchProviders providers={provRegion} />
           </div>
 
-          {/* Aside: score + like */}
           <div className="flex flex-row lg:flex-col items-center gap-4 lg:items-end">
             {movie.vote_average > 0 && (
               <div className="flex flex-col items-center gap-1">
@@ -156,7 +134,7 @@ export default async function MovieDetailPage({ params }: Props) {
                   {movie.vote_average.toFixed(1)} / 10
                 </span>
                 <span className="text-[0.62rem] text-white/25">
-                  {movie.vote_count.toLocaleString()} votos
+                  {movie.vote_count.toLocaleString()} {t(lang, 'votes')}
                 </span>
               </div>
             )}
@@ -164,11 +142,10 @@ export default async function MovieDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* ── Cast ── */}
         {cast.length > 0 && (
           <section className="mb-8">
             <h3 className="font-serif font-bold text-[1rem] text-white/80 mb-4 section-title-bar">
-              Reparto principal
+              {t(lang, 'cast')}
             </h3>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
               {cast.map(member => (
@@ -194,19 +171,14 @@ export default async function MovieDetailPage({ params }: Props) {
           </section>
         )}
 
-        {/* ── Related ── */}
         {recommendations.results.length > 0 && (
           <section>
             <SectionTitle className="section-title-bar mb-5 font-serif font-bold text-[1.1rem] text-white/95">
-              Películas similares
+              {t(lang, 'movieSimilar')}
             </SectionTitle>
             <HScroll className="scrollbar-thin">
               {recommendations.results.slice(0, 12).map(r => (
-                <MovieCard
-                  key={r.id}
-                  item={{ ...r, media_type: 'movie' }}
-                  fixedWidth
-                />
+                <MovieCard key={r.id} item={{ ...r, media_type: 'movie' }} fixedWidth />
               ))}
             </HScroll>
           </section>
@@ -216,7 +188,6 @@ export default async function MovieDetailPage({ params }: Props) {
   )
 }
 
-// ── Sub-components 
 function Chip({ icon, text }: { icon: string; text: string }) {
   return (
     <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full
